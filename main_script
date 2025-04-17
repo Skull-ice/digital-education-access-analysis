@@ -1,0 +1,75 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Charger les données
+df = pd.read_excel("C:/Users/X/Downloads/School-Age-Digital-Connectivity.xlsx", sheet_name="Total school age", header=1)  # header=1 pour ignorer la première ligne inutile
+
+# Nettoyage des données
+# 1. Supprimer les colonnes vides ou inutiles
+df = df.dropna(axis=1, how="all")
+
+# 2. Renommer les colonnes pour plus de clarté
+df.columns = [
+    "ISO3", "Country", "Region", "Sub-region", "Income Group",
+    "Total", "Rural", "Urban", "Poorest", "Richest",
+    "Source", "Year"
+]
+
+# 3. Supprimer les lignes sans données
+df = df.dropna(subset=["Total"])
+# 4. Conversion des pourcentages en numérique
+cols_to_convert = ["Total", "Rural", "Urban", "Poorest", "Richest"]
+df[cols_to_convert] = df[cols_to_convert].apply(pd.to_numeric, errors="coerce")
+
+# KPI 1 : Accès moyen par région
+kpi_region = df.groupby("Region")["Total"].mean().sort_values(ascending=False)
+print("\nKPI 1 - Accès moyen par région :")
+print(kpi_region)
+
+# KPI 2 : Accès moyen par groupe de revenu
+kpi_income = df.groupby("Income Group")["Total"].mean().sort_values(ascending=False)
+print("\nKPI 2 - Accès moyen par groupe de revenu :")
+print(kpi_income)
+
+# KPI 3 : Disparité Rural/Urbain (moyenne)
+df["Rural_Urban_Gap"] = df["Urban"] - df["Rural"]
+kpi_rural_urban = df["Rural_Urban_Gap"].mean()
+print("\nKPI 3 - Écart moyen Rural vs. Urbain :", kpi_rural_urban)
+
+# KPI 4 : Disparité Richesse (Poorest vs. Richest)
+df["Wealth_Gap"] = df["Richest"] - df["Poorest"]
+kpi_wealth_gap = df["Wealth_Gap"].mean()
+print("\nKPI 4 - Écart moyen Richest vs. Poorest :", kpi_wealth_gap)
+# KPI 5 : Top 5 / Bottom 5 des pays
+top5 = df.nlargest(5, "Total")[["Country", "Total"]]
+bottom5 = df.nsmallest(5, "Total")[["Country", "Total"]]
+print("\nTop 5 des pays :")
+print(top5)
+print("\nBottom 5 des pays :")
+print(bottom5)
+
+# Visualisation
+plt.figure(figsize=(15, 10))
+
+# Graphique 1 : Accès par région
+plt.subplot(2, 2, 1)
+sns.barplot(x=kpi_region.index, y=kpi_region.values)
+plt.title("Accès moyen à Internet par région")
+plt.xticks(rotation=45)
+
+# Graphique 2 : Accès par groupe de revenu
+plt.subplot(2, 2, 2)
+sns.barplot(x=kpi_income.index, y=kpi_income.values)
+plt.title("Accès moyen par groupe de revenu")
+plt.xticks(rotation=45)# Graphique 3 : Top 5 / Bottom 5
+plt.subplot(2, 2, 3)
+sns.barplot(x="Total", y="Country", data=top5)
+plt.title("Top 5 des pays")
+
+plt.subplot(2, 2, 4)
+sns.barplot(x="Total", y="Country", data=bottom5)
+plt.title("Bottom 5 des pays")
+
+plt.tight_layout()
+plt.show()
